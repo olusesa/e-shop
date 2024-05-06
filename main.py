@@ -4,6 +4,8 @@ from flask import Flask, render_template, redirect, url_for, request, flash,sess
 from flask_login import login_user, login_required, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import session, redirect, url_for, request, flash
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import Integer, String
 # from paystackapi.transaction import Transaction
 import os
 import stripe
@@ -13,25 +15,36 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI'
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 app.config['STRIPE_PUBLIC_KEY'] = os.environ.get('STRIPE_PUBLIC_KEY')
 app.config['STRIPE_SECRET_KEY'] = os.environ.get('STRIPE_SECRET_KEY')
-db = SQLAlchemy(app)
+
+# CREATE DATABASE
+class Base(DeclarativeBase):
+    pass
+db = SQLAlchemy(model_class=Base)
+db.init_app(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+
+@login_manager.user_loader
+def load_user(user_id):
+    return db.get_or_404(User, user_id)
+
 # Database Models
 class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    email = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(100), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(100), unique=True)
+    password: Mapped[str] = mapped_column(String(100))
+    name: Mapped[str] = mapped_column(String(1000))
 
 class Product(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    description = db.Column(db.Text, nullable=False)
+    id =  Mapped[int] = mapped_column(Integer, primary_key=True)
+    name = Mapped[str] = mapped_column(String(100), unique=True)
+    price = Mapped[float] = mapped_column(String(1000, 2))
+    description = Mapped[str] = mapped_column(String(100))
 
- db.create_all()
+with app.app_context():
+    db.create_all()
 
 # Routes
 @app.route('/')
