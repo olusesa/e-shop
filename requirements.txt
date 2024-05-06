@@ -3,5 +3,4 @@ flask_sqlalchemy
 flask_login
 stripe
 werkzeug
-paystack
-paystackapi
+gunicorn==21.2.0
