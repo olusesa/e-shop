@@ -4,3 +4,4 @@ flask_login
 stripe
 werkzeug
 gunicorn==21.2.0
+psycopg2
