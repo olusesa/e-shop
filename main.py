@@ -30,18 +30,18 @@ login_manager.init_app(app)
 def load_user(user_id):
     return db.get_or_404(User, user_id)
 
+
 # Database Models
 class User(UserMixin, db.Model):
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    email: Mapped[str] = mapped_column(String(100), unique=True)
-    password: Mapped[str] = mapped_column(String(100))
-    name: Mapped[str] = mapped_column(String(1000))
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(100), nullable=False)
 
 class Product(db.Model):
-    id =  Mapped[int] = mapped_column(Integer, primary_key=True)
-    name = Mapped[str] = mapped_column(String(100), unique=True)
-    price = Mapped[float] = mapped_column(String(1000, 2))
-    description = Mapped[str] = mapped_column(String(100))
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    description = db.Column(db.Text, nullable=False)
 
 with app.app_context():
     db.create_all()
