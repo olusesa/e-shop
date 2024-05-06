@@ -31,6 +31,8 @@ class Product(db.Model):
     price = db.Column(db.Float, nullable=False)
     description = db.Column(db.Text, nullable=False)
 
+ db.create_all()
+
 # Routes
 @app.route('/')
 def home():
@@ -184,5 +186,4 @@ def checkout():
 
 # Main
 if __name__ == '__main__':
-    db.create_all()
     app.run(debug=True)
