@@ -5,10 +5,9 @@ from flask_login import login_user, login_required, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import session, redirect, url_for, request, flash
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import Integer, String
-# from paystackapi.transaction import Transaction
 import os
 import stripe
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
@@ -24,7 +23,6 @@ db.init_app(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -42,6 +40,7 @@ class Product(db.Model):
     name = db.Column(db.String(100), nullable=False)
     price = db.Column(db.Float, nullable=False)
     description = db.Column(db.Text, nullable=False)
+    image_filename = db.Column(db.String(100), nullable=False)
 
 with app.app_context():
     db.create_all()
@@ -112,7 +111,13 @@ def login():
         if user and check_password_hash(user.password, password):
             login_user(user)
             flash('Logged in successfully!', 'success')
-            return redirect(url_for('home'))
+            if user.is_admin:
+                # Add product logic here
+                return redirect(url_for('add_product'))
+            elif not user.is_admin or not user:
+                flash('You are not authorized to access this page', 'error')
+            else:
+                return redirect(url_for('home'))
         else:
             flash('Invalid username or password', 'error')
     return render_template('login.html')
@@ -172,8 +177,55 @@ def checkout():
 
     return render_template('checkout.html')
 
+app.config['UPLOAD_FOLDER'] = 'static/product_images'
+app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 
-# @app.route('/checkout', methods=['GET', 'POST'])
+# Function to check if the file extension is allowed
+def allowed_file(filename):
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+@app.route('/add_product', methods=['GET', 'POST'])
+def add_product():
+    if request.method == 'POST':
+        # Get form data
+        name = request.form['name']
+        price = float(request.form['price'])
+        description = request.form['description']
+
+        # Check if the post request has the file part
+        if 'image' not in request.files:
+            flash('No file part', 'error')
+            return redirect(request.url)
+
+        image = request.files['image']
+
+        # If user does not select file, browser also
+        # submit an empty part without filename
+        if image.filename == '':
+            flash('No selected file', 'error')
+            return redirect(request.url)
+
+        # If the file is allowed, save it
+        if image and allowed_file(image.filename):
+            filename = secure_filename(image.filename)
+            image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+            # Add product to database
+            # Replace the following lines with your database logic
+            product = Product(name=name, price=price, description=description, image_filename=filename)
+            db.session.add(product)
+            db.session.commit()
+
+            flash('Product added successfully', 'success')
+            return redirect(url_for('home'))
+        else:
+            flash('Invalid file format. Allowed formats are: png, jpg, jpeg, gif', 'error')
+            return redirect(request.url)
+
+    return render_template('add_product.html')
+
+        # @app.route('/checkout', methods=['GET', 'POST'])
 # @login_required
 # def checkout():
 #     if request.method == 'POST':
